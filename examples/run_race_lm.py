@@ -34,7 +34,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 class RaceDatasetLM(Dataset):
     def __init__(self, example, tokenizer, block_size=128):
-        self.text = example.contexts
+        self.text = example.contexts[0]
         self.examples = []
         self.dataset_id = example.example_id
         tokenized_text = tokenizer.convert_tokens_to_ids(tokenizer.tokenize(self.text))
@@ -272,22 +272,22 @@ if __name__ == "__main__":
 
     # Initialize the data
     processor = RaceProcessor()
-    # train_examples = processor.get_train_examples(args.data_dir)
-    dev_examples = processor.get_dev_examples(args.data_dir)
+    train_examples = processor.get_train_examples(args.data_dir)
+    # dev_examples = processor.get_dev_examples(args.data_dir)
     # test_examples = processor.get_test_examples(args.data_dir)
 
     # all_examples = {'train': train_examples, 'dev': dev_examples, 'test': test_examples}
     # logger.info(f"Total of {len(train_examples) + len(dev_examples) + len(test_examples)} found.")
 
     # Trying parallelism
-    trained_so_far_1 = glob.glob(os.path.join("/data2/okovaleva/bert-memory-models/small", "race_dev/*"))
+    trained_so_far_1 = glob.glob(os.path.join("/data3/okovaleva/bert-memory", "race_train/*"))
     trained_ids_1 = [item.split('/')[-1] for item in trained_so_far_1]
-    # trained_so_far_2 = glob.glob(os.path.join(args.output_dir, f"race_train/*"))
-    # trained_ids_2 = [item.split('/')[-1] for item in trained_so_far_2]
-    trained_ids_all = trained_ids_1
+    trained_so_far_2 = glob.glob(os.path.join(args.output_dir, f"race_train/*"))
+    trained_ids_2 = [item.split('/')[-1] for item in trained_so_far_2]
+    trained_ids_all = trained_ids_1 + trained_ids_2
 
     to_train = []
-    for example in dev_examples:
+    for example in train_examples:
         if 'high' in example.example_id:
             prefix = 'h'
         else:
@@ -300,7 +300,7 @@ if __name__ == "__main__":
     for example in tqdm(to_train):
         train_datasets.append(RaceDatasetLM(example, tokenizer))
     train_datasets = [dataset for dataset in train_datasets if len(dataset) > 0]
-    prefixes = [f"small_dev_multiprocessing_{str((i+1)//250)}" for i in range(len(train_datasets))]
+    prefixes = [f"small_train_multiprocessing_{str((i+1)//250)}" for i in range(len(train_datasets))]
 
     mp = mp.get_context('spawn')
     pool = mp.Pool(processes=5)
